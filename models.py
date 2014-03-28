@@ -7,7 +7,11 @@ class BaseApi():
     def __init__(self, user, token):
         self.user = user
         self.token = token
-        
+
+    def save(self):
+        print "save"
+
+
 class TemporalUser():
     def __init__(self, telephoneNumber):
         self.telephoneNumber = telephoneNumber
@@ -26,3 +30,6 @@ class TemporalUser():
         
     def toJSON(self):
         return {'telephoneNumber':self.telephoneNumber, 'smsCode': self.smsCode, 'created_at': self.created_at}
+
+    def save(self):
+        print "save"

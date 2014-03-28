@@ -18,7 +18,6 @@ app = Flask("apitest")
 mongo = PyMongo(app)
 
 
-
 @app.errorhandler(404)
 def not_found(error):
     return make_response(jsonify( { 'error': 'Not found' } ), 404)
@@ -59,7 +58,19 @@ def create_temporal_user():
 	else:
 		return jsonify( { 'status': "NOK", 'msg': "Bad Data" } ), 302
 	return jsonify( { 'status': "OK", 'msg': "temporalUser created seccessfully" } ), 201
+	
+@app.route('/v1.0/comfirm_code', methods = ['POST'])
+def create_comfirm_code():
+	if not 'sms_code' in request.json:
+		return jsonify( { 'status': "NOK", 'msg': "Needed data: sms_code" } ), 302
+	if not 'telephone' in request.json:
+		return jsonify( { 'status': "NOK", 'msg': "Needed data: telephone" } ), 302
 
+	exists = mongo.db.temporal_users.find({ "telephoneNumber": request.json['telephone'], "smsCode": request.json['sms_code'] } ).count()
+	if exists==0:
+		return jsonify( { 'status': "NOK", 'msg': "SMS code does not match" } ), 201
+	else:
+		return jsonify( { 'status': "OK", 'msg': "user created seccessfully" } ), 201
 if __name__ == '__main__':
     app.run(debug = True)
     

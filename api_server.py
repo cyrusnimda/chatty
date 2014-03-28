@@ -9,11 +9,7 @@ from flask import request
 from flask import abort
 from models import *
 
-from flask.ext.pymongo import PyMongo
-
 app = Flask("apitest")
-app.config['MONGO_chatty_DBNAME'] = 'apitest'
-mongo = PyMongo(None, config_prefix='MONGO_chatty')
 
 @app.errorhandler(404)
 def not_found(error):
@@ -58,11 +54,11 @@ def create_temporal_user():
     return jsonify( { 'status': "OK", 'msg': "temporalUser created seccessfully" } ), 201
 
 
-	exists = mongo.db.temporal_users.find({ "telephoneNumber": request.json['telephone'], "smsCode": request.json['sms_code'] } ).count()
-	if exists==0:
-		return jsonify( { 'status': "NOK", 'msg': "SMS code does not match" } ), 201
-	else:
-		return jsonify( { 'status': "OK", 'msg': "user created seccessfully" } ), 201
+    #exists = mongo.db.temporal_users.find({ "telephoneNumber": request.json['telephone'], "smsCode": request.json['sms_code'] } ).count()
+    #if exists==0:
+    #    return jsonify( { 'status': "NOK", 'msg': "SMS code does not match" } ), 201
+    #else:
+    #    return jsonify( { 'status': "OK", 'msg': "user created seccessfully" } ), 201
 if __name__ == '__main__':
     app.run(debug = True)
     

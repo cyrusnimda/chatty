@@ -8,6 +8,9 @@ from bson.objectid import ObjectId
 from flask import request
 from flask import abort
 from models import *
+from mongoengine import connect
+
+connect('apitest')
 
 app = Flask("apitest")
 
@@ -121,6 +124,22 @@ def getUser():
 	user = User().find(id=request.json['user_id'])
 	if user == False:
 		abort(404)
+	return jsonify(user.showDataTo(request.json['user'])), 201
+	
+@app.route('/v1.0/user', methods = ['PUT'])
+def updateUser():
+	check_token(request)
+	user = User().find(id=request.json['user'])
+	params = request.json.copy()
+	params.pop('user', 0)
+	params.pop('token', 0)
+	for param in params:
+		if not hasattr(user, param):
+			raise RequiredField(param +' is not a legal parameter. Dont be evil')
+		else:
+			user.setAttri(param, request.json[param])
+	print user.updated_fields
+	print user.karma
 	return jsonify(user.showDataTo(request.json['user'])), 201
 
 if __name__ == '__main__':

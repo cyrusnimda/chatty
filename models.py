@@ -4,6 +4,22 @@ from random import randrange
 from pymongo import MongoClient
 import uuid
 from bson.objectid import ObjectId
+from mongoengine import *
+
+
+
+class Room(Document):
+    name = StringField(required=True)
+    created_at = StringField(max_length=50)
+    type = StringField(max_length=50)
+    bloqued_users
+    muted_users
+    owner
+    admins
+    users
+    picture
+    karma
+    config
 
 class BaseCRUD():
     def __init__(self):
@@ -56,7 +72,10 @@ class User(BaseApi):
         self.config = None
         self.karma = 30
         self.secret_token = None
-        
+      
+    def setAttri(self, attr, value):
+        self.updated_fields.append(attr)
+        setattr(self, attr, value)  
         
     def toJSON(self):
         pass 
@@ -76,9 +95,9 @@ class User(BaseApi):
         return self.secret_token
 
     def fillData(self, cursor):
-        print cursor
         self.karma = cursor["karma"]
         self.secret_token = cursor['secret_token']
+         
         
     def showDataTo(self, user):
         data = {}

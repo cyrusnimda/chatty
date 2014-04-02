@@ -31,15 +31,14 @@ class Room(Document):
 
 
 
-class BaseCRUD():
-    def __init__(self):
-        mongoClient = MongoClient()
-        self.mongo = mongoClient.apitest
-        self.updated_fields = []
-        self.id = None
-        
-    def getId(self):
-        return self.id
+app = Flask("apitest")
+config['config_prefix']= 'apitest'
+mongo = PyMongo(None, config )
+
+class BaseApi():
+    def __init__(self, user, token):
+        self.user = user
+        self.token = token
 
     def save(self):
         print "save" 

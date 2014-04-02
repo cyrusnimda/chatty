@@ -142,6 +142,13 @@ def updateUser():
 	print user.karma
 	return jsonify(user.showDataTo(request.json['user'])), 201
 
+@app.route('/v1.0/room', methods = ['POST'])
+def create_room():
+	#check_token(request)
+	room = Room(name="telegram")
+	room.save()
+	return jsonify( { 'status': "OK", 'msg': "Room created seccessfully" } ), 201
+	
 if __name__ == '__main__':
     app.run(debug = True)
     

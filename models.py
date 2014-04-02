@@ -7,19 +7,29 @@ from bson.objectid import ObjectId
 from mongoengine import *
 
 
+class User(Document):
+    name = StringField()
 
+class RoomConfig(EmbeddedDocument):
+    users_are_puclic = BooleanField()
+    
+    
 class Room(Document):
     name = StringField(required=True)
-    created_at = StringField(max_length=50)
+    created_at = DateTimeField(default=datetime.datetime.now())
+    updated_at = DateTimeField(default=datetime.datetime.now())
     type = StringField(max_length=50)
-    bloqued_users
-    muted_users
-    owner
-    admins
-    users
-    picture
-    karma
-    config
+    bloqued_users = ListField(ReferenceField(User))
+    muted_users = ListField(ReferenceField(User))
+    owner = ReferenceField(User)
+    admins = ListField(ReferenceField(User))
+    users = ListField(ReferenceField(User))
+    picture = ImageField()
+    karma = IntField(default=20)
+    config = EmbeddedDocumentField(RoomConfig)
+    
+
+
 
 class BaseCRUD():
     def __init__(self):
@@ -40,7 +50,7 @@ class BaseApi(BaseCRUD):
         self.errors = []
 
 
-class Room(BaseApi):
+class Rooma(BaseApi):
     def __init__(self, request):
         BaseApi.__init__(self, request)
         self.collection = "rooms"
@@ -57,7 +67,7 @@ class Room(BaseApi):
         self.config = None
 
 
-class User(BaseApi):
+class Usera(BaseApi):
     def __init__(self):
         BaseApi.__init__(self)
         self.collection = "users"

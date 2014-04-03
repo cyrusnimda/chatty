@@ -7,8 +7,27 @@ from bson.objectid import ObjectId
 from mongoengine import *
 
 
+
+
+        
 class User(Document):
     name = StringField()
+
+class TemporalCode(Document):
+	telephone_number = IntField(required=True, unique=True)
+	created_at = DateTimeField(default=datetime.datetime.now())
+	user = ReferenceField(User)
+	sms_code = StringField()
+	#self.generateSmsCode()
+	
+	def generateSmsCode(self):
+		code = ""
+		for i in range(4):
+			rand = randrange(10)
+			code = code +str(rand)
+		self.sms_code = code
+		return  True
+		
 
 class RoomConfig(EmbeddedDocument):
     users_are_puclic = BooleanField()
@@ -31,11 +50,7 @@ class Room(Document):
 
 
 
-app = Flask("apitest")
-config['config_prefix']= 'apitest'
-mongo = PyMongo(None, config )
-
-class BaseApi():
+class BaseCRUD():
     def __init__(self, user, token):
         self.user = user
         self.token = token
@@ -125,46 +140,3 @@ class Usera(BaseApi):
             else:
                 self.fillData(cursor[0])
         return self
-
-
-class TemporalUser(BaseApi):
-    def __init__(self, request):
-        BaseApi.__init__(self, request)
-        self.telephoneNumber = None
-        self.smsCode = None
-        self.created_at = datetime.datetime.now()
-        self.checkRequestData()
-        self.collection = "temporal_users"
-        
-    def setSmsCode(self, smsCode):
-        self.smsCode = smsCode
-
-    def checkRequestData(self):
-        if not 'telephone' in self.request.json:
-            self.validateRequest = False
-            self.errrors.append("Telephone is requiered.")
-        else:
-            self.telephoneNumber = self.request.json['telephone']
-        return True
-        
-    def generateSmsCode(self):
-        code = ""
-        for i in range(4):
-            rand = randrange(10)
-            code = code +str(rand)
-        self.smsCode = code
-        return  True
-        
-    def checkUserAndToken(self):
-        return True
-        
-    def toJSON(self):
-        return {'telephoneNumber':self.telephoneNumber, 'smsCode': self.smsCode, 'created_at': self.created_at}
-
-    def save(self):
-        self.mongo[self.collection].insert(self.toJSON())
-        
-    def exists(self):
-        find = { "telephoneNumber": self.telephoneNumber, "smsCode": self.smsCode }
-        count = self.mongo[self.collection].find( find).count()
-        return count>0

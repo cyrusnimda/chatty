@@ -40,26 +40,31 @@ def welcolme():
         return make_response(jsonify({ 'status': "NOK", 'msg': "Don't have enought karma" }),500)
     return jsonify( { 'status': "OK", 'msg': "Welcome to chatty api" } )
 
+def OK_response(msg):
+	return jsonify( { 'status': "OK", 'msg': msg } ), 200
+	
+def NOK_response(msg):
+	return jsonify( { 'status': "NOK", 'msg': msg } ), 300
+
+@app.route('/v1.0/temporal_code', methods = ['POST'])
+def create_temporal_user():
+	temporal_code = TemporalCode()
+	try:
+		temporal_code.telephone_number = request.json['telephone_number']
+		temporal_code.generateSmsCode()
+	except KeyError as e:
+		return NOK_response("Field required: " + e.message)
+	temporal_code.save()
+	return OK_response('Temporal code created.')
+
 @app.route('/v1.0/user', methods = ['POST'])
 def create_user():
-    if not request.json or not 'nick' in request.json:
-        abort(400)
-    user = {
-        'nick': request.json['nick'],
-        'description': request.json.get('cuidad', "Bilbao")
-    }
-    mongo.db.users.insert(user)
-    return jsonify( { 'status': "OK", 'msg': "User created successfully" } ), 201
-
-@app.route('/v1.0/temporal_user', methods = ['POST'])
-def create_temporal_user():
-    temporal_user = TemporalUser(request)
-    if temporal_user.validate():
-        temporal_user.generateSmsCode()
-        temporal_user.save()
-        return jsonify( { 'status': "OK", 'msg': "temporalUser created seccessfully" } ), 201
-    else:
-        return jsonify( { 'status': "NOK", 'msg': "Bad Data" } ), 302
+	try:
+		temporal_code = TemporalCode.objects(telephone_number=request.json['telephone_number'],sms_code=request.json['sms_code'])
+		print temporal_code
+	except KeyError as e:
+		return jsonify( { 'status': "NOK", 'msg': "Field required: " + e.message } ), 302
+	return jsonify( { 'status': "OK", 'msg': "User created successfully" } ), 201		
     
 @app.route('/v1.0/activate_acount', methods = ['POST'])
 def activate_acount():
@@ -81,32 +86,6 @@ def activate_acount():
 def getUserRooms():
 	pass
 	
-	
-class RequiredField(Exception):
-    status_code = 400
-
-    def __init__(self, message, status_code=None, payload=None):
-        Exception.__init__(self)
-        self.message = message
-        if status_code is not None:
-            self.status_code = status_code
-        self.payload = payload
-
-    def to_dict(self):
-        rv = dict(self.payload or ())
-        rv['status'] = 'NOK'
-        rv['msg'] = self.message
-        return rv
-	
-@app.errorhandler(RequiredField)
-def handle_required_field(error):
-    response = jsonify(error.to_dict())
-    response.status_code = 410
-    return response
-	
-def check_required(request, field_required):
-	if not field_required in request.json:
-		raise RequiredField('Field ' + field_required + ' is required')
 		
 def check_token(request):
 	if not "user" in request.json:

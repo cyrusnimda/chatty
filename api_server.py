@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 #!flask/bin/python
 from flask import Flask, jsonify
 from flask import make_response
@@ -48,23 +47,29 @@ def NOK_response(msg):
 
 @app.route('/v1.0/temporal_code', methods = ['POST'])
 def create_temporal_user():
-	temporal_code = TemporalCode()
-	try:
-		temporal_code.telephone_number = request.json['telephone_number']
-		temporal_code.generateSmsCode()
-	except KeyError as e:
-		return NOK_response("Field required: " + e.message)
-	temporal_code.save()
-	return OK_response('Temporal code created.')
+    temporal_code = TemporalCode()
+    print dir(request)
+    try:
+        temporal_code.telephone_number = request.json['telephone_number']
+        temporal_code.generateSmsCode()
+    except KeyError as e:
+        return NOK_response("Field required: " + e.message)
+
+    try:
+        temporal_code.save()
+    except ValidationError as e:
+        return NOK_response("Field bad data: " + e.message)
+
+    return OK_response('Temporal code created.')
 
 @app.route('/v1.0/user', methods = ['POST'])
 def create_user():
-	try:
-		temporal_code = TemporalCode.objects(telephone_number=request.json['telephone_number'],sms_code=request.json['sms_code'])
-		print temporal_code
-	except KeyError as e:
-		return jsonify( { 'status': "NOK", 'msg': "Field required: " + e.message } ), 302
-	return jsonify( { 'status': "OK", 'msg': "User created successfully" } ), 201		
+    try:
+        temporal_code = TemporalCode.objects(telephone_number=request.json['telephone_number'],sms_code=request.json['sms_code'])
+        print temporal_code
+    except KeyError as e:
+        return jsonify( { 'status': "NOK", 'msg': "Field required: " + e.message } ), 302
+    return jsonify( { 'status': "OK", 'msg': "User created successfully" } ), 201
     
 @app.route('/v1.0/activate_acount', methods = ['POST'])
 def activate_acount():

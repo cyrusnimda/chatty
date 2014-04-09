@@ -8,6 +8,7 @@ from flask import request
 from flask import abort
 from models import *
 from mongoengine import connect
+import uuid
 
 connect('apitest')
 
@@ -65,11 +66,18 @@ def create_temporal_user():
 @app.route('/v1.0/user', methods = ['POST'])
 def create_user():
     try:
-        temporal_code = TemporalCode.objects(telephone_number=request.json['telephone_number'],sms_code=request.json['sms_code'])
-        print temporal_code
+        temporal_code = TemporalCode()
+        isLegelCode = temporal_code.checkSmsCode(request.json['telephone_number'],request.json['sms_code'])
+        if isLegelCode:
+        	new_user = User()
+        	new_user.telephone_number = request.json['telephone_number']
+        	new_user.secret_token = uuid.uuid4().hex
+        	new_user.save()
+        else:
+        	return jsonify( { 'status': "NOK", 'msg': "The code is not valid" } ), 300
     except KeyError as e:
         return jsonify( { 'status': "NOK", 'msg': "Field required: " + e.message } ), 302
-    return jsonify( { 'status': "OK", 'msg': "User created successfully" } ), 201
+    return jsonify( { 'status': "OK", 'msg': "User created successfully", 'user_id': new_user.getId(), 'secret_token': new_user.secret_token } ), 201
     
 @app.route('/v1.0/activate_acount', methods = ['POST'])
 def activate_acount():

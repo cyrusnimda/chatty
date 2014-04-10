@@ -13,17 +13,40 @@ class JSONEncoder(json.JSONEncoder):
             return str(o)
         return json.JSONEncoder.default(self, o)
 
+class UserConfig(EmbeddedDocument):
+    CHOICES = ("all", "friends", "nobody")
+    who_can_see_your_age = StringField(max_length=7, choices=CHOICES, default="all")
+    who_can_see_your_city = StringField(max_length=7, choices=CHOICES, default="all")
+    who_can_see_your_rooms = StringField(max_length=7, choices=CHOICES, default="friends")
+    who_can_see_your_friends = StringField(max_length=7, choices=CHOICES, default="nobody")
+    admit_friend_requests = BooleanField(default=True)
+
+class Achivement(Document):
+    title = StringField(max_length=25)
+
 class User(Document):
-    name = StringField()
+    GENDER_CHOICES = ("male", "female")
+
     created_at = DateTimeField(default=datetime.datetime.now())
     updated_at = DateTimeField(default=datetime.datetime.now())
     karma = IntField(default=20)
     secret_token = UUIDField(required=True)
     telephone_number = IntField(required=True, unique=True)
+    config = EmbeddedDocumentField(UserConfig)
 
+    name = StringField(max_length=25)
+    gender = StringField(max_length=6, choices=GENDER_CHOICES)
+    password = StringField(max_length=15)
+    birthdate = DateTimeField()
+    ciudad= StringField(max_length=15)
+    picture = ImageField()
+
+    ignored_users = ListField(ReferenceField(User))
+    friends = ListField(ReferenceField(User))
+    achivements = ListField(ReferenceField(Achivement))
+    
     def getId(self):
         return str(self.id)
-        #return JSONEncoder().encode(self.id)
     
 
 class TemporalCode(Document):

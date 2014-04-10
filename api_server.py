@@ -72,6 +72,7 @@ def create_user():
         	new_user = User()
         	new_user.telephone_number = request.json['telephone_number']
         	new_user.secret_token = uuid.uuid4().hex
+        	new_user.config = UserConfig()
         	new_user.save()
         else:
         	return jsonify( { 'status': "NOK", 'msg': "The code is not valid" } ), 300

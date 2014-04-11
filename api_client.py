@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from models import *
-
 import requests, json
-
 from time import mktime
+from collections import OrderedDict
+import hashlib
 
 class DateEncoder(json.JSONEncoder):
 
@@ -18,6 +18,7 @@ class BaseApi():
     def __init__(self):
         self.base_url = "http://localhost:5000"
         self.version = "v1.0"
+        self.params = {}
 
     def sendToAPI(self, url, method, params):
         url = "%s/%s/%s" %(self.base_url, self.version, url)
@@ -34,16 +35,28 @@ class BaseApi():
 
         print r.json
 
+    def create(self, url, params):
+        self.sendToAPI(self.url, "POST", params)
+
+    def update(self, url, params):
+        self.sendToAPI(self.url, "PUT", params)
+
+    def getSignature(self, params, secret_token):
+        paramsOrdered = OrderedDict(sorted(params.items(), key=lambda t: t[0]))
+        secret_token = ""
+        for key, param in paramsOrdered.iteritems(): 
+            secret_token += param
+        secret_token += secret_token
+        return hashlib.sha1(secret_token).hexdigest()
+
 
 class TemporalCode(BaseApi):
     telephone_number = 636314996
     url = "temporal_code"
 
     def create(self):
-        method = "POST"
-        params = {}
-        params["telephone_number"] = self.telephone_number
-        self.sendToAPI(self.url, "POST", params)
+        self.params["telephone_number"] = self.telephone_number
+        BaseApi.create(self, self.url, self.params)
 
 class UserApi(BaseApi):
     id = "5347c4017950c334997277da"
@@ -57,20 +70,20 @@ class UserApi(BaseApi):
     birthdate = datetime.date(1983, 4, 21)
 
     def create(self):
-        params = {}
-        params["telephone_number"] = self.telephone_number
-        params["sms_code"] = self.sms_code
-        self.sendToAPI(self.url, "POST", params)
+        self.params["telephone_number"] = self.telephone_number
+        self.params["sms_code"] = self.sms_code
+        BaseApi.create(self, self.url, self.params)
 
     def update(self):
-        params = {}
-        params["user"] = self.id
-        params["secret_token"] = self.secret_token
-        params["name"] = self.name
-        params["gender"] = self.gender
-        params["city"] = self.city
-        params["birthdate"] = json.dumps(self.birthdate, cls=DateEncoder)
-        self.sendToAPI(self.url, "PUT", params)
+        self.params["user"] = self.id
+        self.params["name"] = self.name
+        self.params["gender"] = self.gender
+        self.params["city"] = self.city
+        self.params["birthdate"] = json.dumps(self.birthdate, cls=DateEncoder)
+        signature = self.getSignature(self.params, self.secret_token)
+        print signature
+        self.params['signature'] = signature
+        BaseApi.update(self, self.url, self.params)
 
 #tc = TemporalCode()
 #tc.create()

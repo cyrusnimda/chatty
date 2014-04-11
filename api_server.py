@@ -11,6 +11,8 @@ from mongoengine import connect
 import uuid
 from time import mktime
 from datetime import datetime as newDateTime
+from collections import OrderedDict
+import hashlib
 
 connect('apitest')
 
@@ -24,14 +26,6 @@ def not_found(error):
 def required(error, msg):
     return make_response(jsonify( { 'error': str(msg) + 'Required' } ), 403)
 
-
-def user_have_enoght_karma(needed_karma, user_karma):
-    return needed_karma < user_karma
-
-
-def check_karma(needed_karma, user_karma):
-    if needed_karma < user_karma:
-        return make_response(jsonify({ 'status': "NOK", 'msg': "Don't have enought karma" }),500)
 
 
 def OkResponse(msg):
@@ -56,6 +50,33 @@ class ErrorResponse(Exception):
         rv['status'] = 'NOK'
         rv['msg'] = self.message
         return rv
+
+def getSignature(params, secret_token):
+    del params['signature']
+    paramsOrdered = OrderedDict(sorted(params.items(), key=lambda t: t[0]))
+    secret_token = ""
+    for key, param in paramsOrdered.iteritems(): 
+        secret_token += param
+    secret_token += secret_token
+    return hashlib.sha1(secret_token).hexdigest()
+        
+def check_token(request):
+    try:
+        user = User.objects.get(id=request.json['user'])
+        userSignature = request.json['signature']
+        ownSignature = getSignature(request.json, user.secret_token)
+        
+        if ownSignature != userSignature:
+            raise ErrorResponse('Secret token does not match')
+        else:
+            return user
+
+    except KeyError as e:
+        raise ErrorResponse("Field required: " + e.message)
+    except ValidationError as e:
+        raise ErrorResponse("Dont be evil: " + e.message)
+    except DoesNotExist as e:
+        raise ErrorResponse("This user does not exits")
 
 @app.errorhandler(ErrorResponse)
 def handle_required_field(error):
@@ -126,23 +147,6 @@ def updateUser():
 def getUserRooms():
 	pass
 	
-		
-def check_token(request):
-	try:
-		user = User.objects.get(id=request.json['user'])
-
-		print user.to_json()
-		if user.secret_token != uuid.UUID(request.json['secret_token']):
-			raise ErrorResponse('Secret token does not match')
-		else:
-			return user
-
-	except KeyError as e:
-		raise ErrorResponse("Field required: " + e.message)
-	except ValidationError as e:
-		raise ErrorResponse("Dont be evil: " + e.message)
-	except DoesNotExist as e:
-		raise ErrorResponse("This user does not exits")
 
 @app.route('/v1.0/user', methods = ['GET'])
 def getUser():

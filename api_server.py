@@ -9,10 +9,10 @@ from flask import abort
 from models import *
 from mongoengine import connect
 import uuid
+from time import mktime
+from datetime import datetime as newDateTime
 
 connect('apitest')
-
-
 
 app = Flask("apitest")
 
@@ -33,35 +33,58 @@ def check_karma(needed_karma, user_karma):
     if needed_karma < user_karma:
         return make_response(jsonify({ 'status': "NOK", 'msg': "Don't have enought karma" }),500)
 
-@app.route('/v1.0/', methods = ['GET'])
-def welcolme():
-    user_karma = 50;
-    if not user_have_enoght_karma(20, user_karma):
-        return make_response(jsonify({ 'status': "NOK", 'msg': "Don't have enought karma" }),500)
-    return jsonify( { 'status': "OK", 'msg': "Welcome to chatty api" } )
 
-def OK_response(msg):
+def OkResponse(msg):
 	return jsonify( { 'status': "OK", 'msg': msg } ), 200
 	
-def NOK_response(msg):
+
+def NOkResponse(msg):
 	return jsonify( { 'status': "NOK", 'msg': msg } ), 300
+
+class ErrorResponse(Exception):
+    status_code = 400
+
+    def __init__(self, message, status_code=None, payload=None):
+        Exception.__init__(self)
+        self.message = message
+        if status_code is not None:
+            self.status_code = status_code
+        self.payload = payload
+
+    def to_dict(self):
+        rv = dict(self.payload or ())
+        rv['status'] = 'NOK'
+        rv['msg'] = self.message
+        return rv
+
+@app.errorhandler(ErrorResponse)
+def handle_required_field(error):
+    response = jsonify(error.to_dict())
+    response.status_code = 410
+    return response
+
+
+@app.route('/v1.0/', methods = ['GET'])
+def welcolme():
+    return jsonify( { 'status': "OK", 'msg': "Welcome to chatty api" } )
+
 
 @app.route('/v1.0/temporal_code', methods = ['POST'])
 def create_temporal_user():
     temporal_code = TemporalCode()
-    print dir(request)
     try:
         temporal_code.telephone_number = request.json['telephone_number']
         temporal_code.generateSmsCode()
     except KeyError as e:
-        return NOK_response("Field required: " + e.message)
+        return NOkResponse("Field required: " + e.message)
 
     try:
         temporal_code.save()
     except ValidationError as e:
-        return NOK_response("Field bad data: " + e.message)
+        return NOkResponse("Field bad data: " + e.message)
 
-    return OK_response('Temporal code created.')
+    return OkResponse('Temporal code created.')
+
 
 @app.route('/v1.0/user', methods = ['POST'])
 def create_user():
@@ -75,26 +98,29 @@ def create_user():
         	new_user.config = UserConfig()
         	new_user.save()
         else:
-        	return jsonify( { 'status': "NOK", 'msg': "The code is not valid" } ), 300
+        	print request.json['sms_code']
+        	raise ErrorResponse('The code is not valid')
+
     except KeyError as e:
-        return jsonify( { 'status': "NOK", 'msg': "Field required: " + e.message } ), 302
-    return jsonify( { 'status': "OK", 'msg': "User created successfully", 'user_id': new_user.getId(), 'secret_token': new_user.secret_token } ), 201
+    	raise ErrorResponse("Field required: " + e.message)
+
+    return OkResponse("User created successfully, 'user_id': " + new_user.getId() + " 'secret_token':" + new_user.secret_token )
     
-@app.route('/v1.0/activate_acount', methods = ['POST'])
-def activate_acount():
-	temporal_user = TemporalUser(request)
-	if not 'smsCode' in request.json:
-		return jsonify( { 'status': "NOK", 'msg': "smsCode is required" } ), 302
-	else:
-		temporal_user.setSmsCode(request.json['smsCode'])
-		
-	if temporal_user.exists():
-		user = User(request)
-		user.generateSecretToken()
-		user.insert()
-		return jsonify( { 'status': "OK", 'msg': "user created seccessfully", 'id' : user.getId(), 'secret_token' : user.getSecretToken() } ), 201
-	else:
-		return jsonify( { 'status': "NOK", 'msg': "SMS code does not match" } ), 302
+
+@app.route('/v1.0/user', methods = ['PUT'])
+def updateUser():
+	user = check_token(request)
+	try:
+		user.name = request.json['name']
+		user.gender = request.json['gender']
+		user.birthdate =  newDateTime.fromtimestamp(int(request.json['birthdate']))
+		user.city = request.json['city']
+		user.updated_at = datetime.datetime.now()
+		user.save()
+	except KeyError as e:
+		raise ErrorResponse("Field required: " + e.message)
+	return OkResponse("User updated successfully")
+
 
 @app.route('/v1.0/user/rooms', methods = ['GET'])
 def getUserRooms():
@@ -102,16 +128,22 @@ def getUserRooms():
 	
 		
 def check_token(request):
-	if not "user" in request.json:
-		raise RequiredField('Field user is required')
-	if not "token" in request.json:
-		raise RequiredField('Field token is required')
-	
-	user =User()
-	user.find(id=request.json['user'])
-	if user.getSecretToken() != request.json['token']:
-		raise RequiredField('Secret token does not match')
-	
+	try:
+		user = User.objects.get(id=request.json['user'])
+
+		print user.to_json()
+		if user.secret_token != uuid.UUID(request.json['secret_token']):
+			raise ErrorResponse('Secret token does not match')
+		else:
+			return user
+
+	except KeyError as e:
+		raise ErrorResponse("Field required: " + e.message)
+	except ValidationError as e:
+		raise ErrorResponse("Dont be evil: " + e.message)
+	except DoesNotExist as e:
+		raise ErrorResponse("This user does not exits")
+
 @app.route('/v1.0/user', methods = ['GET'])
 def getUser():
 	check_required(request, "user_id")
@@ -121,21 +153,7 @@ def getUser():
 		abort(404)
 	return jsonify(user.showDataTo(request.json['user'])), 201
 	
-@app.route('/v1.0/user', methods = ['PUT'])
-def updateUser():
-	check_token(request)
-	user = User().find(id=request.json['user'])
-	params = request.json.copy()
-	params.pop('user', 0)
-	params.pop('token', 0)
-	for param in params:
-		if not hasattr(user, param):
-			raise RequiredField(param +' is not a legal parameter. Dont be evil')
-		else:
-			user.setAttri(param, request.json[param])
-	print user.updated_fields
-	print user.karma
-	return jsonify(user.showDataTo(request.json['user'])), 201
+
 
 @app.route('/v1.0/room', methods = ['POST'])
 def create_room():

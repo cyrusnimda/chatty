@@ -30,19 +30,20 @@ class User(Document):
     created_at = DateTimeField(default=datetime.datetime.now())
     updated_at = DateTimeField(default=datetime.datetime.now())
     karma = IntField(default=20)
-    secret_token = UUIDField(required=True)
+    secret_token = UUIDField(required=True, binary=False)
     telephone_number = IntField(required=True, unique=True)
     config = EmbeddedDocumentField(UserConfig)
 
     name = StringField(max_length=25)
     gender = StringField(max_length=6, choices=GENDER_CHOICES)
-    password = StringField(max_length=15)
     birthdate = DateTimeField()
-    ciudad= StringField(max_length=15)
-    picture = ImageField()
+    city= StringField(max_length=15)
 
-    ignored_users = ListField(ReferenceField(User))
-    friends = ListField(ReferenceField(User))
+    picture = ImageField()
+    password = StringField(max_length=15)
+    
+    ignored_users = ListField(ReferenceField("self"))
+    friends = ListField(ReferenceField("self"))
     achivements = ListField(ReferenceField(Achivement))
     
     def getId(self):
@@ -65,7 +66,7 @@ class TemporalCode(Document):
         return  True
 
     def checkSmsCode(self, telephone_number, sms_code):
-        temporal_code = TemporalCode.objects(telephone_number=telephone_number, sms_code=sms_code)
+        temporal_code = TemporalCode.objects(telephone_number=telephone_number, sms_code=str(sms_code))
         return temporal_code.count()>0
 
 

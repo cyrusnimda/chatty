@@ -11,7 +11,11 @@ from mongoengine import connect
 import uuid
 from time import mktime
 from datetime import datetime as newDateTime
-from collections import OrderedDict
+try:
+    from collections import OrderedDict
+except ImportError:
+    # python 2.6 or earlier, use backport
+    from ordereddict import OrderedDict
 import hashlib
 
 connect('apitest')
@@ -142,6 +146,43 @@ def updateUser():
 		raise ErrorResponse("Field required: " + e.message)
 	return OkResponse("User updated successfully")
 
+
+@app.route('/v1.0/user/config', methods = ['PUT'])
+def updateUserConfig():
+    user = check_token(request)
+    try:
+        user_config = UserConfig()
+        user_config.who_can_see_your_age = request.json['who_can_see_your_age']
+        user_config.who_can_see_your_city = request.json['who_can_see_your_city']
+        user_config.who_can_see_your_rooms = request.json['who_can_see_your_rooms']
+        user_config.who_can_see_your_friends = request.json['who_can_see_your_friends']
+        if request.json['admit_friend_requests'] == "True":
+            user_config.admit_friend_requests = True
+        else:
+            user_config.admit_friend_requests = False
+        user.config = user_config
+        user.save()
+    except KeyError as e:
+        raise ErrorResponse("Field required: " + e.message)
+    return OkResponse("User updated successfully")
+
+@app.route('/v1.0/user/friends', methods = ['POST'])
+def addFriend():
+    user = check_token(request)
+    try:
+        friend = User.objects.get(id=request.json['friend'])
+        user.friends.append(friend)
+        user.save()
+    except KeyError as e:
+        raise ErrorResponse("Field required: " + e.message)
+    except DoesNotExist as e:
+        raise ErrorResponse("This friend does not exits")
+
+    return OkResponse("Friend added successfully")
+
+@app.route('/v1.0/user/ignoredUsers', methods = ['POST'])
+def blockUser():
+    pass
 
 @app.route('/v1.0/user/rooms', methods = ['GET'])
 def getUserRooms():

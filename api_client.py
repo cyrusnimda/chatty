@@ -36,11 +36,16 @@ class BaseApi():
             r = requests.put(url, data, headers=headers)
         elif method == "GET":
             r = requests.get(url, data, headers=headers)
+        elif method == "DELETE":
+            r = requests.delete(url, data=data, headers=headers)
 
         print r.json
 
     def create(self, url, params):
         self.sendToAPI(url, "POST", params)
+
+    def remove(self, url, params):
+        self.sendToAPI(url, "DELETE", params)
 
     def update(self, url, params):
         self.sendToAPI(url, "PUT", params)
@@ -67,8 +72,8 @@ class UserApi(BaseApi):
     secret_token = "6a48bf6f24b595b1-2107458689d490ba"
     url = "user"
     name = "Josulin"
-    telephone_number = 636314996
-    sms_code = 5141
+    telephone_number = 636314552
+    sms_code = 1237
     gender = "male"
     city = "Bilbao"
     birthdate = datetime.date(1983, 4, 21)
@@ -99,6 +104,20 @@ class UserApi(BaseApi):
         self.params['signature'] = signature
         BaseApi.update(self, "user/config", self.params)
 
+    def addFriend(self, friend):
+        self.params["user"] = self.id
+        self.params["friend"] = friend
+        signature = self.getSignature(self.params, self.secret_token)
+        self.params['signature'] = signature
+        BaseApi.create(self, "user/friends", self.params)
+
+    def removeFriend(self, friend):
+        self.params["user"] = self.id
+        self.params["friend"] = friend
+        signature = self.getSignature(self.params, self.secret_token)
+        self.params['signature'] = signature
+        BaseApi.remove(self, "user/friends", self.params)
+
 #tc = TemporalCode()
 #tc.create()
 
@@ -108,5 +127,11 @@ class UserApi(BaseApi):
 #user = UserApi()
 #user.update()
 
+#user = UserApi()
+#user.updateConfig()
+
+#user = UserApi()
+#user.addFriend("53502c38a8537808b8098cad")
+
 user = UserApi()
-user.updateConfig()
+user.removeFriend("53502c38a8537808b8098cad")

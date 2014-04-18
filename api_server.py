@@ -172,6 +172,7 @@ def addFriend():
     try:
         friend = User.objects.get(id=request.json['friend'])
         user.friends.append(friend)
+        #user.update(add_to_set__friends=friend)
         user.save()
     except KeyError as e:
         raise ErrorResponse("Field required: " + e.message)
@@ -179,6 +180,22 @@ def addFriend():
         raise ErrorResponse("This friend does not exits")
 
     return OkResponse("Friend added successfully")
+
+@app.route('/v1.0/user/friends', methods = ['DELETE'])
+def deleteFriend():
+    user = check_token(request)
+    try:
+        friend = User.objects.get(id=request.json['friend'])
+        print user.friends
+        user.friends.remove(friend)
+        print user.friends
+        user.save()
+    except KeyError as e:
+        raise ErrorResponse("Field required: " + e.message)
+    except DoesNotExist as e:
+        raise ErrorResponse("This friend does not exits")
+
+    return OkResponse("Friend removed successfully")
 
 @app.route('/v1.0/user/ignoredUsers', methods = ['POST'])
 def blockUser():

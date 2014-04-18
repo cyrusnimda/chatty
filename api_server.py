@@ -18,7 +18,9 @@ except ImportError:
     from ordereddict import OrderedDict
 import hashlib
 
+
 connect('apitest')
+
 
 app = Flask("apitest")
 
@@ -171,8 +173,12 @@ def addFriend():
     user = check_token(request)
     try:
         friend = User.objects.get(id=request.json['friend'])
+        if user == friend:
+            raise ErrorResponse("The friend cant be you")
+        if friend in user.friends:
+            raise ErrorResponse("The friend is already in your friend list")
+           
         user.friends.append(friend)
-        #user.update(add_to_set__friends=friend)
         user.save()
     except KeyError as e:
         raise ErrorResponse("Field required: " + e.message)
@@ -186,9 +192,13 @@ def deleteFriend():
     user = check_token(request)
     try:
         friend = User.objects.get(id=request.json['friend'])
-        print user.friends
-        user.friends.remove(friend)
-        print user.friends
+        if user == friend:
+            raise ErrorResponse("The friend cant be you")
+        try:
+            user.friends.remove(friend)
+        except ValueError as e:
+            raise ErrorResponse("This friend is not in the user friend list")
+
         user.save()
     except KeyError as e:
         raise ErrorResponse("Field required: " + e.message)

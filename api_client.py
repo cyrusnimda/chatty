@@ -39,7 +39,7 @@ class BaseApi():
         elif method == "DELETE":
             r = requests.delete(url, data=data, headers=headers)
 
-        print r.json
+        print r.text
 
     def create(self, url, params):
         self.sendToAPI(url, "POST", params)
@@ -68,12 +68,12 @@ class TemporalCode(BaseApi):
         BaseApi.create(self, self.url, self.params)
 
 class UserApi(BaseApi):
-    id = "5346e259a853780cedaea07a"
-    secret_token = "6a48bf6f24b595b1-2107458689d490ba"
+    id = "5350f47b2024471367dea8b0"
+    secret_token = "1e0d34c1960d4d79828ee32c5d3d8a8a"
     url = "user"
     name = "Josulin"
-    telephone_number = 636314552
-    sms_code = 1237
+    telephone_number = 636314996
+    sms_code = 3290
     gender = "male"
     city = "Bilbao"
     birthdate = datetime.date(1983, 4, 21)
@@ -130,8 +130,8 @@ class UserApi(BaseApi):
 #user = UserApi()
 #user.updateConfig()
 
-#user = UserApi()
-#user.addFriend("53502c38a8537808b8098cad")
-
 user = UserApi()
-user.removeFriend("53502c38a8537808b8098cad")
+user.addFriend("5350f47b2024471367dea8b0")
+
+#user = UserApi()
+#user.removeFriend("5350f47b2024471367dea8b0")

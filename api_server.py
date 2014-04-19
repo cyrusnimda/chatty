@@ -216,24 +216,35 @@ def getUserRooms():
 	pass
 	
 
-@app.route('/v1.0/user', methods = ['GET'])
-def getUser():
-	check_required(request, "user_id")
-	check_token(request)
-	user = User().find(id=request.json['user_id'])
-	if user == False:
-		abort(404)
-	return jsonify(user.showDataTo(request.json['user'])), 201
-	
-
-
 @app.route('/v1.0/room', methods = ['POST'])
 def create_room():
-	#check_token(request)
-	room = Room(name="telegram")
-	room.save()
-	return jsonify( { 'status': "OK", 'msg': "Room created seccessfully" } ), 201
-	
+    user = check_token(request)
+    try:
+        room = Room()
+        room.name = request.json['name']
+        room.room_type = request.json['room_type']
+        room.owner = user
+        room.admins.append(user)
+        room.users.append(user)
+        room.config = RoomConfig()
+        room.save()
+    except KeyError as e:
+        raise ErrorResponse("Field required: " + e.message)
+    except NotUniqueError as e:
+        raise ErrorResponse("This room already exits")
+
+    return OkResponse("Room created successfully")
+
+@app.route('/v1.0/user', methods = ['GET'])
+def getUser():
+    check_required(request, "user_id")
+    check_token(request)
+    user = User().find(id=request.json['user_id'])
+    if user == False:
+        abort(404)
+    return jsonify(user.showDataTo(request.json['user'])), 201
+
+
 if __name__ == '__main__':
     app.run(debug = True)
     

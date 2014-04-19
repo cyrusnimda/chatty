@@ -71,14 +71,20 @@ class TemporalCode(Document):
 
 
 class RoomConfig(EmbeddedDocument):
-    users_are_puclic = BooleanField()
+    GENDER_CHOICES = ("male", "female", "all")
+    users_are_puclic = BooleanField(default=False)
+    min_karma = IntField(default=0)
+    gender = StringField(max_length=6, choices=GENDER_CHOICES, default="all")
+    max_age = IntField(default=0)
+    min_age = IntField(default=0)
     
     
 class Room(Document):
-    name = StringField(required=True)
+    TYPE_CHOICES = ("public", "private", "anonimous")
+    name = StringField(required=True, unique=True)
     created_at = DateTimeField(default=datetime.datetime.now())
     updated_at = DateTimeField(default=datetime.datetime.now())
-    type = StringField(max_length=50)
+    room_type = StringField(max_length=10, choices=TYPE_CHOICES, default="public")
     bloqued_users = ListField(ReferenceField(User))
     muted_users = ListField(ReferenceField(User))
     owner = ReferenceField(User)

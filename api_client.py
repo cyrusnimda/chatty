@@ -8,6 +8,7 @@ except ImportError:
     # python 2.6 or earlier, use backport
     from ordereddict import OrderedDict
 import hashlib
+import sys
 
 class DateEncoder(json.JSONEncoder):
 
@@ -23,6 +24,8 @@ class BaseApi():
         self.base_url = "http://localhost:5000"
         self.version = "v1.0"
         self.params = {}
+        self.id = "5346e259a853780cedaea07a"
+        self.secret_token = "6a48bf6f24b595b12107458689d490ba"
 
     def sendToAPI(self, url, method, params):
         url = "%s/%s/%s" %(self.base_url, self.version, url)
@@ -67,9 +70,21 @@ class TemporalCode(BaseApi):
         self.params["telephone_number"] = self.telephone_number
         BaseApi.create(self, self.url, self.params)
 
+class Room(BaseApi):
+    url = "room"
+    name = "default"
+    room_type = "public"
+
+    def create(self):
+        self.params["user"] = self.id
+        self.params["name"] = self.name
+        self.params["room_type"] = self.room_type
+        signature = self.getSignature(self.params, self.secret_token)
+        self.params['signature'] = signature
+        BaseApi.create(self, self.url, self.params)
+
 class UserApi(BaseApi):
-    id = "5350f47b2024471367dea8b0"
-    secret_token = "1e0d34c1960d4d79828ee32c5d3d8a8a"
+    
     url = "user"
     name = "Josulin"
     telephone_number = 636314996
@@ -130,8 +145,38 @@ class UserApi(BaseApi):
 #user = UserApi()
 #user.updateConfig()
 
-user = UserApi()
-user.addFriend("5350f47b2024471367dea8b0")
+#user = UserApi()
+#user.addFriend("5350f47b2024471367dea8b0")
 
 #user = UserApi()
 #user.removeFriend("5350f47b2024471367dea8b0")
+
+options_menu = ['create_room','create_user']
+
+def print_options():
+    print "## please select one menu option"
+    for item in options_menu:
+        print "[x]", item
+    exit(0)
+
+def create_room():
+    required_params = 2;
+    if len(sys.argv) != 2+required_params:
+        print "ERROR, params required"
+        print "example: python", sys.argv[0], "<name> <room_type>"
+    else:
+        room = Room()
+        room.name = sys.argv[2]
+        room.room_type = sys.argv[3]
+        room.create()
+
+if __name__ == "__main__":
+    if len(sys.argv)<2:
+        print_options()
+
+    selected_option = sys.argv[1]
+    if not selected_option in options_menu:
+        print_options()
+
+    if selected_option == "create_room":
+        create_room()

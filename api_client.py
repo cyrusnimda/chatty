@@ -27,7 +27,7 @@ class BaseApi():
         self.id = "5346e259a853780cedaea07a"
         self.secret_token = "6a48bf6f24b595b12107458689d490ba"
 
-    def sendToAPI(self, url, method, params):
+    def sendToAPI(self, url, method, params, files = None):
         url = "%s/%s/%s" %(self.base_url, self.version, url)
         print url
 
@@ -41,6 +41,11 @@ class BaseApi():
             r = requests.get(url, data, headers=headers)
         elif method == "DELETE":
             r = requests.delete(url, data=data, headers=headers)
+        elif method == "UPLOAD":
+            
+            r = requests.post(url, headers=headers, data=params, files=files)
+            #r = requests.post(url, data=data, headers=headers, files=files)
+
 
         print r.text
 
@@ -52,6 +57,11 @@ class BaseApi():
 
     def update(self, url, params):
         self.sendToAPI(url, "PUT", params)
+
+    def upload(self, url, params, file_path):
+        f = open(file_path, 'rb')
+        files = {'file': f }
+        self.sendToAPI(url, "UPLOAD", params, files)
 
     def getSignature(self, params, secret_token):
         paramsOrdered = OrderedDict(sorted(params.items(), key=lambda t: t[0]))
@@ -133,6 +143,12 @@ class UserApi(BaseApi):
         self.params['signature'] = signature
         BaseApi.remove(self, "user/friends", self.params)
 
+    def upload_avatar(self, avatar):
+        self.params["user"] = self.id
+        signature = self.getSignature(self.params, self.secret_token)
+        self.params['signature'] = signature
+        BaseApi.upload(self, "user/picture", self.params, avatar)
+
 #tc = TemporalCode()
 #tc.create()
 
@@ -151,7 +167,7 @@ class UserApi(BaseApi):
 #user = UserApi()
 #user.removeFriend("5350f47b2024471367dea8b0")
 
-options_menu = ['create_room','create_user']
+options_menu = ['create_room','create_user', 'upload_avatar']
 
 def print_options():
     print "## please select one menu option"
@@ -160,15 +176,25 @@ def print_options():
     exit(0)
 
 def create_room():
-    required_params = 2;
+    required_params = 2
     if len(sys.argv) != 2+required_params:
         print "ERROR, params required"
-        print "example: python", sys.argv[0], "<name> <room_type>"
+        print "example: python", sys.argv[0], sys.argv[1], "<name> <room_type>"
     else:
         room = Room()
         room.name = sys.argv[2]
         room.room_type = sys.argv[3]
         room.create()
+
+def upload_avatar():
+    required_params = 1
+    if len(sys.argv) != 2+required_params:
+        print "ERROR, params required"
+        print "example: python", sys.argv[0], sys.argv[1], "<file>"
+    else:
+        user = UserApi()
+        avatar = sys.argv[2]
+        user.upload_avatar(avatar)
 
 if __name__ == "__main__":
     if len(sys.argv)<2:
@@ -180,3 +206,6 @@ if __name__ == "__main__":
 
     if selected_option == "create_room":
         create_room()
+
+    if selected_option == "upload_avatar":
+        upload_avatar()

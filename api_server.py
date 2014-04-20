@@ -207,6 +207,11 @@ def deleteFriend():
 
     return OkResponse("Friend removed successfully")
 
+@app.route('/v1.0/user/picture', methods = ['POST'])
+def setUserPicture():
+    print "set picture"
+    return OkResponse("Friend removed successfully")
+
 @app.route('/v1.0/user/ignoredUsers', methods = ['POST'])
 def blockUser():
     pass

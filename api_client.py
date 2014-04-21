@@ -25,7 +25,7 @@ class BaseApi():
         self.version = "v1.0"
         self.params = {}
         self.id = "5346e259a853780cedaea07a"
-        self.secret_token = "6a48bf6f24b595b12107458689d490ba"
+        self.secret_token = "b195b524-6fbf-486a-ba90-d48986450721"
 
     def sendToAPI(self, url, method, params, files = None):
         url = "%s/%s/%s" %(self.base_url, self.version, url)
@@ -42,8 +42,8 @@ class BaseApi():
         elif method == "DELETE":
             r = requests.delete(url, data=data, headers=headers)
         elif method == "UPLOAD":
-            
-            r = requests.post(url, headers=headers, data=params, files=files)
+            print params
+            r = requests.post(url, data=params, files=files)
             #r = requests.post(url, data=data, headers=headers, files=files)
 
 
@@ -65,11 +65,12 @@ class BaseApi():
 
     def getSignature(self, params, secret_token):
         paramsOrdered = OrderedDict(sorted(params.items(), key=lambda t: t[0]))
-        secret_token = ""
+        string = ""
         for key, param in paramsOrdered.iteritems(): 
-            secret_token += param
-        secret_token += secret_token
-        return hashlib.sha1(secret_token).hexdigest()
+            string += str(param)
+        string += str(secret_token)
+        print string
+        return hashlib.sha1(string).hexdigest()
 
 
 class TemporalCode(BaseApi):

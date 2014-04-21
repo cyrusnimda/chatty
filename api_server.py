@@ -17,12 +17,15 @@ except ImportError:
     # python 2.6 or earlier, use backport
     from ordereddict import OrderedDict
 import hashlib
+import os
 
 
 connect('apitest')
 
-
+UPLOAD_FOLDER = '/tmp/'
+ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
 app = Flask("apitest")
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 @app.errorhandler(404)
 def not_found(error):
@@ -60,19 +63,28 @@ class ErrorResponse(Exception):
 def getSignature(params, secret_token):
     del params['signature']
     paramsOrdered = OrderedDict(sorted(params.items(), key=lambda t: t[0]))
-    secret_token = ""
+    string = ""
     for key, param in paramsOrdered.iteritems(): 
-        secret_token += param
-    secret_token += secret_token
-    return hashlib.sha1(secret_token).hexdigest()
+        string += param
+    string += str(secret_token)
+    print string
+    return hashlib.sha1(string).hexdigest()
         
-def check_token(request):
+def check_token(request, upload=False):
     try:
-        user = User.objects.get(id=request.json['user'])
-        userSignature = request.json['signature']
-        ownSignature = getSignature(request.json, user.secret_token)
+        if not upload:
+            user = User.objects.get(id=request.json['user'])
+            userSignature = request.json['signature']
+            ownSignature = getSignature(request.json, user.secret_token)
+        else:
+            user = User.objects.get(id=request.form['user'])
+            userSignature = request.form['signature']
+            string = str(request.form['user']) + str(user.secret_token)
+            print string
+            ownSignature = hashlib.sha1(string).hexdigest()
         
         if ownSignature != userSignature:
+            print "user=",userSignature,"own=",ownSignature
             raise ErrorResponse('Secret token does not match')
         else:
             return user
@@ -207,10 +219,24 @@ def deleteFriend():
 
     return OkResponse("Friend removed successfully")
 
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
+def secure_filename(filename):
+    return filename
+
 @app.route('/v1.0/user/picture', methods = ['POST'])
 def setUserPicture():
-    print "set picture"
-    return OkResponse("Friend removed successfully")
+    user = check_token(request, True)
+    file = request.files['file']
+    if file and allowed_file(file.filename):
+        picture = file
+        user.picture.replace(picture)
+        user.save()
+        #filename = secure_filename(file.filename)
+        #file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    return OkResponse("Picture upload successfully")
 
 @app.route('/v1.0/user/ignoredUsers', methods = ['POST'])
 def blockUser():

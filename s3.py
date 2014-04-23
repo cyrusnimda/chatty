@@ -1,7 +1,9 @@
 import boto
 
-AWS_ACCESS_KEY_ID = 'AKIAINIFFGYGWVWE6IQQ'
-AWS_SECRET_ACCESS_KEY = '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'
+config = {}
+execfile("keys.conf", config)
+AWS_ACCESS_KEY_ID = config["AWS_ACCESS_KEY_ID"]
+AWS_SECRET_ACCESS_KEY = config["AWS_SECRET_ACCESS_KEY"]
 
 BUCKET_NAME = 'chattys3'
 
